@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeY - Cyberpunk Social</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(20, 20, 40, 0.92); backdrop-filter: blur(20px); border: 1px solid rgba(139, 92, 246, 0.5); }
+    .neon-purple { text-shadow: 0 0 20px #a855f7; }
+    .cyber-gradient { background: linear-gradient(90deg, #6b21a8, #2563eb); }
+  </style>
+</head>
+<body class="text-white min-h-screen bg-black">
+
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 glass z-50">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-3xl font-bold neon-purple">VibeY</h1>
+      <div class="flex items-center gap-6">
+        <span id="user-status" class="text-sm hidden flex items-center gap-2">
+          สวัสดี, <span id="username" class="text-purple-400 font-medium"></span>
+        </span>
+        
+        <i onclick="showReels()" class="fa-solid fa-film cursor-pointer text-purple-400"></i>
+        <i onclick="createPost()" id="create-btn" class="fa-solid fa-square-plus cursor-pointer hidden"></i>
+        <i onclick="showAdminLogin()" class="fa-solid fa-shield-halved cursor-pointer hover:text-red-400"></i>
+        <i onclick="showUserMenu()" id="user-icon" class="fa-solid fa-user cursor-pointer hover:text-purple-400"></i>
+      </div>
+    </div>
+  </header>
+
+  <!-- User Login Modal -->
+  <div id="userLoginModal" class="hidden fixed inset-0 bg-black/95 z-[400] flex items-center justify-center">
+    <div class="glass w-full max-w-md rounded-3xl p-8">
+      <h2 class="text-2xl font-bold neon-purple text-center mb-6">เข้าสู่ระบบ</h2>
+      
+      <div class="space-y-5">
+        <input id="userEmail" type="email" placeholder="อีเมล" class="w-full glass rounded-2xl px-5 py-4">
+        <input id="userPassword" type="password" placeholder="รหัสผ่าน" class="w-full glass rounded-2xl px-5 py-4">
+        
+        <button onclick="loginUser()" class="w-full cyber-gradient py-4 rounded-3xl font-bold">เข้าสู่ระบบ</button>
+        
+        <div class="flex justify-between text-sm">
+          <span onclick="forgotPassword()" class="text-purple-400 cursor-pointer hover:underline">ลืมรหัสผ่าน?</span>
+          <span onclick="switchToRegister()" class="text-purple-400 cursor-pointer hover:underline">สมัครสมาชิก</span>
+        </div>
+      </div>
+      <button onclick="hideUserLogin()" class="mt-6 w-full text-gray-400">ปิด</button>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="registerModal" class="hidden fixed inset-0 bg-black/95 z-[400] flex items-center justify-center">
+    <div class="glass w-full max-w-md rounded-3xl p-8">
+      <h2 class="text-2xl font-bold neon-purple text-center mb-6">สมัครสมาชิก</h2>
+      <input id="regEmail" type="email" placeholder="อีเมล" class="w-full glass rounded-2xl px-5 py-4 mb-4">
+      <input id="regUsername" type="text" placeholder="ชื่อผู้ใช้" class="w-full glass rounded-2xl px-5 py-4 mb-4">
+      <input id="regPassword" type="password" placeholder="รหัสผ่าน" class="w-full glass rounded-2xl px-5 py-4 mb-6">
+      
+      <button onclick="registerUser()" class="w-full cyber-gradient py-4 rounded-3xl font-bold">สมัครสมาชิก</button>
+      <button onclick="switchToLogin()" class="mt-4 w-full text-gray-400">กลับไปเข้าสู่ระบบ</button>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgotModal" class="hidden fixed inset-0 bg-black/95 z-[400] flex items-center justify-center">
+    <div class="glass w-full max-w-md rounded-3xl p-8">
+      <h2 class="text-2xl font-bold neon-purple text-center mb-6">ลืมรหัสผ่าน</h2>
+      <p class="text-center text-gray-300 mb-6">กรอกอีเมลเพื่อรับลิงก์ reset รหัสผ่าน</p>
+      <input id="forgotEmail" type="email" placeholder="อีเมลของคุณ" class="w-full glass rounded-2xl px-5 py-4 mb-6">
+      <button onclick="sendResetLink()" class="w-full cyber-gradient py-4 rounded-3xl font-bold">ส่งลิงก์ Reset</button>
+      <button onclick="hideForgotModal()" class="mt-4 w-full text-gray-400">ปิด</button>
+    </div>
+  </div>
+
+  <!-- User Menu (หลังล็อกอิน) -->
+  <div id="userMenuModal" class="hidden fixed inset-0 bg-black/80 z-[450] flex items-end md:items-center justify-center">
+    <div class="glass w-full max-w-md rounded-t-3xl md:rounded-3xl p-6">
+      <div id="user-info" class="text-center mb-6"></div>
+      
+      <div onclick="logout()" class="py-4 text-red-400 flex items-center gap-3 justify-center cursor-pointer hover:bg-red-900/30 rounded-2xl">
+        <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+      </div>
+      <button onclick="hideUserMenu()" class="mt-6 w-full text-gray-400">ปิด</button>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    // Protected Function
+    function checkAuth() {
+      if (!currentUser) {
+        alert("กรุณาเข้าสู่ระบบก่อน");
+        showUserLogin();
+        return false;
+      }
+      return true;
+    }
+
+    function createPost() {
+      if (checkAuth()) {
+        alert("📝 เปิดหน้าสร้างโพสต์ / Reels");
+      }
+    }
+
+    function showReels() {
+      if (checkAuth()) {
+        alert("🎥 กำลังเปิด Reels");
+      }
+    }
+
+    // Login
+    function showUserLogin() {
+      document.getElementById('userLoginModal').classList.remove('hidden');
+    }
+
+    function hideUserLogin() {
+      document.getElementById('userLoginModal').classList.add('hidden');
+    }
+
+    function loginUser() {
+      const email = document.getElementById('userEmail').value.trim();
+      if (email) {
+        currentUser = {
+          email: email,
+          username: email.split('@')[0],
+          verified: true
+        };
+        hideUserLogin();
+        updateUIAfterLogin();
+        alert(`✅ ล็อกอินสำเร็จ\n${currentUser.email} (Verified)`);
+      }
+    }
+
+    // Register
+    function switchToRegister() {
+      hideUserLogin();
+      document.getElementById('registerModal').classList.remove('hidden');
+    }
+
+    function registerUser() {
+      const email = document.getElementById('regEmail').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      
+      if (email) {
+        currentUser = {
+          email: email,
+          username: username || email.split('@')[0],
+          verified: false
+        };
+        document.getElementById('registerModal').classList.add('hidden');
+        updateUIAfterLogin();
+        alert(`🎉 สมัครสำเร็จ!\nกรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน`);
+        setTimeout(() => verifyEmail(), 1500);
+      }
+    }
+
+    function verifyEmail() {
+      if (currentUser) {
+        currentUser.verified = true;
+        alert(`✅ อีเมล ${currentUser.email} ถูกยืนยันแล้ว`);
+      }
+    }
+
+    // Forgot Password
+    function forgotPassword() {
+      hideUserLogin();
+      document.getElementById('forgotModal').classList.remove('hidden');
+    }
+
+    function hideForgotModal() {
+      document.getElementById('forgotModal').classList.add('hidden');
+    }
+
+    function sendResetLink() {
+      const email = document.getElementById('forgotEmail').value;
+      if (email) {
+        hideForgotModal();
+        alert(`📧 ลิงก์เปลี่ยนรหัสผ่านถูกส่งไปที่ ${email} แล้ว`);
+      }
+    }
+
+    // Logout
+    function logout() {
+      if (confirm("ออกจากระบบ?")) {
+        currentUser = null;
+        hideUserMenu();
+        updateUIAfterLogin();
+        alert("👋 ออกจากระบบเรียบร้อย");
+      }
+    }
+
+    function updateUIAfterLogin() {
+      const status = document.getElementById('user-status');
+      const createBtn = document.getElementById('create-btn');
+      
+      if (currentUser) {
+        status.classList.remove('hidden');
+        document.getElementById('username').textContent = currentUser.username;
+        createBtn.classList.remove('hidden');
+      } else {
+        status.classList.add('hidden');
+        createBtn.classList.add('hidden');
+      }
+    }
+
+    function showUserMenu() {
+      if (!currentUser) {
+        showUserLogin();
+        return;
+      }
+      const menu = document.getElementById('userMenuModal');
+      document.getElementById('user-info').innerHTML = `
+        <p class="font-bold">${currentUser.username}</p>
+        <p class="text-sm text-gray-400">${currentUser.email}</p>
+        <p class="text-xs ${currentUser.verified ? 'text-green-400' : 'text-yellow-400'}">
+          ${currentUser.verified ? '✓ Verified' : '⚠ รอการยืนยัน'}
+        </p>
+      `;
+      menu.classList.remove('hidden');
+    }
+
+    function hideUserMenu() {
+      document.getElementById('userMenuModal').classList.add('hidden');
+    }
+
+    // Admin Login (ย่อ)
+    function showAdminLogin() {
+      alert("🛡️ Admin Login\nEmail: anksw02@gmail.com\nPass: Rtgadk_02");
+    }
+
+    console.log("%c✅ ระบบ User Authentication พร้อมใช้งานแล้ว", "color: #a855f7; font-size: 16px");
+  </script>
+</body>
+</html>
